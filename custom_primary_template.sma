@@ -57,19 +57,19 @@ const Float: glf_Primary_Shoot_Range_Modifier = 1.0; // Damage Falloff : 1.0 = c
 const Bullet: gli_Primary_Shoot_Bullet_Type = BULLET_PLAYER_762MM; // cssdk_const.inc/Bullet
 
 const gli_Primary_Shoot_Damage = 10;
-const gli_Primary_Shoot_Penetration = 2;
+const gli_Primary_Shoot_Penetration = 4;
 
 #define df_Custom_Victim_Velocity_Modifier
 
 #if defined df_Custom_Victim_Velocity_Modifier
-    const Float: glf_Primary_Shoot_Victim_Velocity_Modifier = 1.0; // ~1 second 0.0 to 1.0 (player speed * x.x), lower values reduce velocity effects too (e.g. pushback effect)
+    const Float: glf_Primary_Shoot_Victim_Velocity_Modifier = 0.0; // ~1 second 0.0 to 1.0 (player speed * x.x), lower values reduce velocity effects too (e.g. pushback effect)
 #endif
 
 #define df_Victim_Push_Back
 
 #if defined df_Victim_Push_Back
-    const Float: glf_Primary_Shoot_Victim_Push_Back_Strenght = 300.0;
-    const Float: glf_Primary_Shoot_Victim_Push_Back_Up_Strenght = 100.0;
+    const Float: glf_Primary_Shoot_Victim_Push_Back_Strenght = 50.0;
+    const Float: glf_Primary_Shoot_Victim_Push_Back_Up_Strenght = 0.0;
 #endif
 
 // View Model Animations
@@ -131,6 +131,10 @@ public plugin_init()
 
     #if defined df_WeaponList
         RegisterHam(Ham_Item_AddToPlayer, gls_Primary_Reference, "Ham_Primary_AddToPlayer_Post", true);
+    #endif
+
+    #if defined df_Custom_Victim_Velocity_Modifier || defined df_Victim_Push_Back
+        RegisterHam(Ham_TakeDamage, "player", "Ham_Player_TakeDamage_Post", true);
     #endif
 
     // Fakemeta
@@ -363,6 +367,30 @@ public Ham_Primary_Spawn_Post(iPrimary)
     }
 #endif
 
+#if defined df_Custom_Victim_Velocity_Modifier || defined df_Victim_Push_Back
+    public Ham_Player_TakeDamage_Post(iVictim, iInflictor, iAttacker)
+    {
+        if(is_user_alive(iAttacker))
+        {
+            static iPrimary; iPrimary = get_member(iAttacker, m_pActiveItem);
+
+            if(!is_nullent(iPrimary) && get_entvar(iPrimary, var_impulse) == gli_Primary_Unique_Index)
+            {
+                #if defined df_Victim_Push_Back
+                    static Float: vecAttackerViewAngles[3]; get_entvar(iAttacker, var_v_angle, vecAttackerViewAngles);
+                    static Float: vecTargetVelocity[3]; get_entvar(iVictim, var_velocity, vecTargetVelocity);
+
+                    UTIL_AimPushBack(iVictim, vecAttackerViewAngles, vecTargetVelocity, glf_Primary_Shoot_Victim_Push_Back_Strenght, glf_Primary_Shoot_Victim_Push_Back_Up_Strenght);
+                #endif
+
+                #if defined df_Custom_Victim_Velocity_Modifier
+                    set_member(iVictim, m_flVelocityModifier, glf_Primary_Shoot_Victim_Velocity_Modifier);
+                #endif 
+            }
+        }
+    }
+#endif
+
 /* ~ [ Fakemeta ] ~ */
 public FW_UpdateClientData_Post(iPlayer, iSendWeapons, iClientData)
 {
@@ -459,22 +487,6 @@ public RG_IsPenetrableEntity_Post(Float: vecStart[3], Float: vecEnd[3], iPlayer,
             }
         }
     }
-
-    #if defined df_Custom_Victim_Velocity_Modifier || defined df_Victim_Push_Back
-        if(is_user_alive(iHit) && get_member(iHit, m_iTeam) != get_member(iPlayer, m_iTeam))
-        {
-            #if defined df_Custom_Victim_Velocity_Modifier
-                set_member(iHit, m_flVelocityModifier, glf_Primary_Shoot_Victim_Velocity_Modifier);
-            #endif
-
-            #if defined df_Victim_Push_Back
-                static Float: vecPlayerViewAngles[3]; get_entvar(iPlayer, var_v_angle, vecPlayerViewAngles);
-                static Float: vecVictimVelocity[3]; get_entvar(iHit, var_velocity, vecVictimVelocity);
-
-                UTIL_AimPushBack(iHit, vecPlayerViewAngles, vecVictimVelocity, glf_Primary_Shoot_Victim_Push_Back_Strenght, glf_Primary_Shoot_Victim_Push_Back_Up_Strenght);
-            #endif
-        }
-    #endif
 }
 
 /* ~ [ Stocks ] ~ */
