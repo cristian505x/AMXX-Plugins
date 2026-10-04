@@ -216,6 +216,56 @@ public RG_Primary_WeaponBox_SetModel_Pre(iWeaponBox)
     return HC_CONTINUE;
 }
 
+public RG_IsPenetrableEntity_Post(Float: vecStart[3], Float: vecEnd[3], iPlayer, iHit)
+{
+    static iPointContents; iPointContents = engfunc(EngFunc_PointContents, vecEnd);
+
+    if(iPointContents != CONTENTS_SKY)
+    {
+        // World || Valid BSP Entity
+        if(!iHit || (!is_nullent(iHit) && !(get_entvar(iHit, var_flags) & FL_KILLME) && ExecuteHam(Ham_IsBSPModel, iHit)))
+        {
+            static iRenderMode; iRenderMode = get_entvar(iHit, var_rendermode);
+
+            if(iRenderMode != kRenderTransAlpha) // No effects on transparent stuff.
+            {
+                engfunc(EngFunc_MessageBegin, MSG_PVS, SVC_TEMPENTITY, vecEnd, 0);
+                write_byte(TE_GUNSHOTDECAL);
+                engfunc(EngFunc_WriteCoord, vecEnd[0]);
+                engfunc(EngFunc_WriteCoord, vecEnd[1]);
+                engfunc(EngFunc_WriteCoord, vecEnd[2]);
+                write_short(iHit);
+                write_byte(iRenderMode == kRenderNormal ? 41 : 183); // forums.alliedmods.net/showthread.php?t=20448
+                message_end();
+
+                if(iPointContents != CONTENTS_WATER)
+                {
+                    static Float: vecPlaneNormal[3]; global_get(glb_trace_plane_normal, vecPlaneNormal);
+
+                    for(new i = 0; i < 3; i++)
+                    {
+                        vecPlaneNormal[i] *= 8.0;
+                    }
+
+                    engfunc(EngFunc_MessageBegin, MSG_PVS, SVC_TEMPENTITY, vecEnd, 0);
+                    write_byte(TE_STREAK_SPLASH);
+                    engfunc(EngFunc_WriteCoord, vecEnd[0]);
+                    engfunc(EngFunc_WriteCoord, vecEnd[1]);
+                    engfunc(EngFunc_WriteCoord, vecEnd[2]);
+                    engfunc(EngFunc_WriteCoord, vecPlaneNormal[0]);
+                    engfunc(EngFunc_WriteCoord, vecPlaneNormal[1]);
+                    engfunc(EngFunc_WriteCoord, vecPlaneNormal[2]);
+                    write_byte(4); // Color
+                    write_short(70); // Count
+                    write_short(15); // Speed
+                    write_short(50); // Noise
+                    message_end();
+                }
+            }
+        }
+    }
+}
+
 #if defined df_Primary_Holder_Speed_Bonus
     public RG_Player_ResetMaxSpeed_Post(iPlayer)
     {
@@ -435,56 +485,6 @@ Give_Custom_Primary(iPlayer)
         if(get_member(iPlayer, m_rgAmmo, iAmmoType) < gli_Primary_Default_Ammo)
         {
             set_member(iPlayer, m_rgAmmo, gli_Primary_Default_Ammo, iAmmoType);
-        }
-    }
-}
-
-public RG_IsPenetrableEntity_Post(Float: vecStart[3], Float: vecEnd[3], iPlayer, iHit)
-{
-    static iPointContents; iPointContents = engfunc(EngFunc_PointContents, vecEnd);
-
-    if(iPointContents != CONTENTS_SKY)
-    {
-        // World || Valid BSP Entity
-        if(!iHit || (!is_nullent(iHit) && !(get_entvar(iHit, var_flags) & FL_KILLME) && ExecuteHam(Ham_IsBSPModel, iHit)))
-        {
-            static iRenderMode; iRenderMode = get_entvar(iHit, var_rendermode);
-
-            if(iRenderMode != kRenderTransAlpha) // No effects on transparent stuff.
-            {
-                engfunc(EngFunc_MessageBegin, MSG_PVS, SVC_TEMPENTITY, vecEnd, 0);
-                write_byte(TE_GUNSHOTDECAL);
-                engfunc(EngFunc_WriteCoord, vecEnd[0]);
-                engfunc(EngFunc_WriteCoord, vecEnd[1]);
-                engfunc(EngFunc_WriteCoord, vecEnd[2]);
-                write_short(iHit);
-                write_byte(iRenderMode == kRenderNormal ? 41 : 183); // forums.alliedmods.net/showthread.php?t=20448
-                message_end();
-
-                if(iPointContents != CONTENTS_WATER)
-                {
-                    static Float: vecPlaneNormal[3]; global_get(glb_trace_plane_normal, vecPlaneNormal);
-
-                    for(new i = 0; i < 3; i++)
-                    {
-                        vecPlaneNormal[i] *= 8.0;
-                    }
-
-                    engfunc(EngFunc_MessageBegin, MSG_PVS, SVC_TEMPENTITY, vecEnd, 0);
-                    write_byte(TE_STREAK_SPLASH);
-                    engfunc(EngFunc_WriteCoord, vecEnd[0]);
-                    engfunc(EngFunc_WriteCoord, vecEnd[1]);
-                    engfunc(EngFunc_WriteCoord, vecEnd[2]);
-                    engfunc(EngFunc_WriteCoord, vecPlaneNormal[0]);
-                    engfunc(EngFunc_WriteCoord, vecPlaneNormal[1]);
-                    engfunc(EngFunc_WriteCoord, vecPlaneNormal[2]);
-                    write_byte(4); // Color
-                    write_short(70); // Count
-                    write_short(15); // Speed
-                    write_short(50); // Noise
-                    message_end();
-                }
-            }
         }
     }
 }
